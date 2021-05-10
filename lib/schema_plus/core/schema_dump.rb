@@ -96,6 +96,11 @@ module SchemaPlus
               pr += ',' unless options.blank?
               stream.write "%-#{namelen+3}s " % pr
             end
+
+            if options[:default].kind_of?(Proc)
+              options[:default] = options[:default].call
+            end
+
             stream.write options.to_s.sub(/^{(.*)}$/, '\1') unless options.blank?
             stream.write ' ' unless options.blank? or comments.blank?
             stream.write '# ' + comments.join('; ') unless comments.blank?
