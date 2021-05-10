@@ -18,11 +18,12 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
 
-  gem.add_dependency "activerecord", "~> 5.0"
+  gem.add_dependency "activerecord", ">= 5.0", "< 6.2"
   gem.add_dependency "schema_monkey", "~> 2.1"
   gem.add_dependency "its-it", "~> 1.2"
+  gem.add_dependency "byebug"
 
-  gem.add_development_dependency "bundler", "~> 1.7"
+  gem.add_development_dependency "bundler", "~> 2"
   gem.add_development_dependency "rake", "~> 10.0"
   gem.add_development_dependency "rspec", "~> 3.0"
   gem.add_development_dependency "rspec-given"
