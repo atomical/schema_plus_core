@@ -2,9 +2,26 @@ module SchemaPlus
   module Core
     module ActiveRecord
       module ConnectionAdapters
+
+        module SchemaCreation
+
+          def add_column_options!(sql, options)
+            sql << " " + SchemaMonkey::Middleware::Sql::ColumnOptions.start(caller: self, connection: self.instance_variable_get('@conn'), sql: "", column: options[:column], options: options.except(:column)) { |env|
+              super env.sql, env.options.merge(column: env.column)
+            }.sql.lstrip
+          end
+
+          def visit_TableDefinition(o)
+            SchemaMonkey::Middleware::Sql::Table.start(caller: self, connection: self.instance_variable_get('@conn'), table_definition: o, sql: SqlStruct::Table.new) { |env|
+              env.sql.parse! super env.table_definition
+            }.sql.assemble
+          end
+        end
+
         module AbstractAdapter
 
           def add_column(table_name, name, type, options = {})
+            # debugger
             options = options.deep_dup
             SchemaMonkey::Middleware::Migration::Column.start(caller: self, operation: :add, table_name: table_name, column_name: name, type: type, implements_reference: options.delete(:_implements_reference), options: options) do |env|
               super env.table_name, env.column_name, env.type, env.options
@@ -19,6 +36,7 @@ module SchemaPlus
 
           def add_reference(table_name, name, options = {})
             SchemaMonkey::Middleware::Migration::Column.start(caller: self, operation: :add, table_name: table_name, column_name: "#{name}_id", type: :reference, options: options.deep_dup) do |env|
+              # debugger
               super env.table_name, env.column_name.sub(/_id$/, ''), env.options.merge(_implements_reference: true)
             end
           end
@@ -35,38 +53,40 @@ module SchemaPlus
             end
           end
 
+          # module SchemaCreation
+
+          #   def add_column_options!(sql, options)
+          #     sql << " " + SchemaMonkey::Middleware::Sql::ColumnOptions.start(caller: self, connection: self.instance_variable_get('@conn'), sql: "", column: options[:column], options: options.except(:column)) { |env|
+          #       super env.sql, env.options.merge(column: env.column)
+          #     }.sql.lstrip
+          #   end
+
+          #   def visit_TableDefinition(o)
+          #     SchemaMonkey::Middleware::Sql::Table.start(caller: self, connection: self.instance_variable_get('@conn'), table_definition: o, sql: SqlStruct::Table.new) { |env|
+          #       env.sql.parse! super env.table_definition
+          #     }.sql.assemble
+          #   end
+          # end
+
           # replaced version to handle array of columns with expressions
-          def quoted_columns_for_index(column_names, **options)
-            output_columns = []
+          # def quoted_columns_for_index(column_names, **options)
+          #   output_columns = []
 
-            column_names.each do |column|
-              if column.is_a?(String) && column.include?('(')
-                output_columns << column
-              else
-                quoted = {column.to_sym => quote_column_name(column).dup}
-                output_columns.concat add_options_for_index_columns(quoted, options).values
-              end
-            end
+          #   column_names.each do |column|
+          #     if column.is_a?(String) && column.include?('(')
+          #       output_columns << column
+          #     else
+          #       quoted = {column.to_sym => quote_column_name(column).dup}
+          #       output_columns.concat add_options_for_index_columns(quoted, options).values
+          #     end
+          #   end
+          #   # debugger
+          #   output_columns
+          # end
 
-            output_columns
-          end
-          private :quoted_columns_for_index
 
+          # private :quoted_columns_for_index
 
-          module SchemaCreation
-
-            def add_column_options!(sql, options)
-              sql << " " + SchemaMonkey::Middleware::Sql::ColumnOptions.start(caller: self, connection: self.instance_variable_get('@conn'), sql: "", column: options[:column], options: options.except(:column)) { |env|
-                super env.sql, env.options.merge(column: env.column)
-              }.sql.lstrip
-            end
-
-            def visit_TableDefinition(o)
-              SchemaMonkey::Middleware::Sql::Table.start(caller: self, connection: self.instance_variable_get('@conn'), table_definition: o, sql: SqlStruct::Table.new) { |env|
-                env.sql.parse! super env.table_definition
-              }.sql.assemble
-            end
-          end
         end
       end
     end
